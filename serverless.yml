@@ -19,7 +19,7 @@ params:
     EcsEnableExecuteCommand: true
     LogRetentionDays: 7
     LogGroupPrefix: '/hilco/hlc-${self:provider.stage}-'
-    ServerlessBucket: 'hlc-${self:provider.stage}-ipv4-market-site
+    ServerlessBucket: 'hlc-${self:provider.stage}-ipv4-market-site'
     AuthKey: ${env:AUTH_KEY}
     AuthSalt: ${env:AUTH_SALT}
     NonceSalt: ${env:NONCE_SALT}
