@@ -19,8 +19,7 @@ params:
     EcsEnableExecuteCommand: true
     LogRetentionDays: 7
     LogGroupPrefix: '/hilco/hlc-${self:provider.stage}-'
-    ServerlessBucket: 'hlc-${self:provider.stage}-ipv4-market-site'
-
+    ServerlessBucket: 'hlc-${self:provider.stage}-ipv4-market-site
     AuthKey: ${env:AUTH_KEY}
     AuthSalt: ${env:AUTH_SALT}
     NonceSalt: ${env:NONCE_SALT}
@@ -29,14 +28,12 @@ params:
     SecureAuthSalt: ${env:SECURE_AUTH_SALT}
     LoggedInKey: ${env:LOGGED_IN_KEY}
     LoggedInSalt: ${env:LOGGED_IN_SALT}
-
     DBHost: ${env:DB_HOST}
     DBUser: ${env:DB_USER}
     DBName: ${env:DB_NAME}
     DBPassword: ${env:DB_PASSWORD}
     DBCollate: ${env:DB_COLLATE}
     DBCharset: ${env:DB_CHARSET}
-
     EfsId: ${env:EFS_ID}
     EfsMountPath: ${env:EFS_MOUNT_PATH}
 
@@ -158,46 +155,46 @@ resources:
                 ContainerPort: ${param:ServicePort}
             Environment:
               - Name: AUTH_KEY
-                Value: ${param.AuthKey}
+                Value: ${param:AuthKey}
 
               - Name: AUTH_SALT
-                Value: ${param.AuthSalt}
+                Value: ${param:AuthSalt}
 
               - Name: NONCE_KEY
-                Value: ${param.NonceKey}
+                Value: ${param:NonceKey}
 
               - Name: NONCE_SALT
-                Value: ${param.NonceSalt}
+                Value: ${param:NonceSalt}
 
               - Name: SECURE_AUTH_KEY
-                Value: ${param.SecureAuthKey}
+                Value: ${param:SecureAuthKey}
 
               - Name: SECURE_AUTH_SALT
-                Value: ${param.SecureAuthSalt}
+                Value: ${param:SecureAuthSalt}
 
               - Name: LOGGED_IN_KEY
-                Value: ${param.LoggedInKey}
+                Value: ${param:LoggedInKey}
 
               - Name: LOGGED_IN_SALT
-                Value: ${param.LoggedInSalt}
+                Value: ${param:LoggedInSalt}
 
               - Name: DB_HOST
-                Value: ${param.DBHost}
+                Value: ${param:DBHost}
 
               - Name: DB_USER
-                Value: ${param.DBUser}
+                Value: ${param:DBUser}
 
               - Name: DB_NAME
-                Value: ${param.DBName}
+                Value: ${param:DBName}
 
               - Name: DB_PASSWORD
-                Value: ${param.DBPassword}
+                Value: ${param:DBPassword}
 
               - Name: DB_COLLATE
-                Value: ${param.DBCollate}
+                Value: ${param:DBCollate}
 
               - Name: DB_CHARSET
-                Value: ${param.DBCharset}
+                Value: ${param:DBCharset}
 
             LogConfiguration:
               LogDriver: awslogs
