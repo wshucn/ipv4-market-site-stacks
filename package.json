@@ -1,0 +1,28 @@
+{
+  "name": "hilco-market-site-stacks",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "deploy:dev": "sls deploy --verbose --stage dev --region us-east-1 --aws-profile hilco-dev",
+    "remove:dev": "sls remove --verbose --stage dev --region us-east-1 --aws-profile hilco-dev",
+    "deploy:staging": "sls deploy --verbose --stage staging --region us-east-1 --aws-profile hilco-dev",
+    "remove:staging": "sls remove --verbose --stage staging --region us-east-1 --aws-profile hilco-dev",
+    "deploy:prod": "sls deploy --verbose --stage prod --region us-east-1 --aws-profile hilco-dev",
+    "remove:prod": "sls remove --verbose --stage prod --region us-east-1 --aws-profile hilco-dev"
+  },
+  "dependencies": {
+    "serverless-dotenv-plugin": "^3.12.2"
+  },
+  "devDependencies": {
+    "semver": "7.5.4",
+    "serverless": "^3.23.0",
+    "source-map-support": "0.5.21",
+    "webpack": "5.89.0"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "packageManager": "pnpm@9.13.0+sha1.f149ab27b27e712ac9a58ce1717c307364ccdca8"
+}

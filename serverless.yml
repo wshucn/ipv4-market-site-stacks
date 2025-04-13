@@ -1,0 +1,217 @@
+service: ipv4-market-site
+
+frameworkVersion: '3'
+configValidationMode: error
+
+params:
+  # NB: serverless-params.octopus.json has to be very clean json
+  default:
+    StackName: 'hlc-${self:provider.stage}-ipv4-market-site'
+    ServicePort: 80
+    FrontendSecurityGroup: ${env:FRONTEND_SECURITY_GROUP}
+    ServiceSecurityGroup: ${env:SERVICE_SECURITY_GROUP}
+    ServiceTargetGroup: ${env:SERVICE_TARGET_GROUP}
+    Image: ${env:WP_IMAGE}
+    EcsClusterName: 'hlc-${self:provider.stage}-ipv4-market-site-services'
+    EcsTaskDesiredCount: ${env:ESC_TASK_DISIRED_COUNT}
+    EcsTaskCpu: ${env:ESC_TASK_CPU}
+    EcsTaskMemory: ${env:ESC_TASK_MEMORY}
+    EcsEnableExecuteCommand: true
+    LogRetentionDays: 7
+    LogGroupPrefix: '/hilco/hlc-${self:provider.stage}-'
+    ServerlessBucket: 'hlc-${self:provider.stage}-ipv4-market-site'
+
+    AuthKey: ${env:AUTH_KEY}
+    AuthSalt: ${env:AUTH_SALT}
+    NonceSalt: ${env:NONCE_SALT}
+    NonceKey: ${env:NONCE_KEY}
+    SecureAuthKey: ${env:SECURE_AUTH_KEY}
+    SecureAuthSalt: ${env:SECURE_AUTH_SALT}
+    LoggedInKey: ${env:LOGGED_IN_KEY}
+    LoggedInSalt: ${env:LOGGED_IN_SALT}
+
+    DBHost: ${env:DB_HOST}
+    DBUser: ${env:DB_USER}
+    DBName: ${env:DB_NAME}
+    DBPassword: ${env:DB_PASSWORD}
+    DBCollate: ${env:DB_COLLATE}
+    DBCharset: ${env:DB_CHARSET}
+
+useDotenv: true
+
+plugins:
+  - serverless-dotenv-plugin
+
+provider:
+  name: aws
+  deploymentMethod: direct
+  stackName: ${param:StackName}
+  region: ${opt:region, 'us-east-1'}
+  stage: ${opt:stage, 'dev'}
+  profile: ${opt:aws-profile, 'hilco-dev'}
+  deploymentBucket:
+    name: ${param:ServerlessBucket}
+
+resources:
+  Resources:
+    EcsServiceLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: ${param:LogGroupPrefix}${self:service}
+        RetentionInDays: ${param:LogRetentionDays}
+
+    EcsExecutionRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${param:StackName}-ecsExecution
+        AssumeRolePolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: ecs-tasks.amazonaws.com
+              Action: sts:AssumeRole
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+          - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+
+    EcsTaskRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${param:StackName}-ecsTask
+        AssumeRolePolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: ecs-tasks.amazonaws.com
+              Action: sts:AssumeRole
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/AmazonS3FullAccess
+          - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+
+    EcsServicePolicy:
+      Type: AWS::IAM::Policy
+      Properties:
+        PolicyName: EcsServicePolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogStream
+                - logs:DescribeLogStreams
+                - logs:CreateLogGroup
+                - logs:PutLogEvents
+              Resource:
+                - arn:aws:logs:*:${aws:accountId}:log-group:${param:LogGroupPrefix}*
+            - Effect: Allow
+              Action:
+                - logs:DescribeLogGroups
+              Resource:
+                - arn:aws:logs:*:${aws:accountId}:log-group:*
+            - Sid: EnableExecuteCommandPolicy
+              Effect: Allow
+              Action:
+                - ssmmessages:CreateControlChannel
+                - ssmmessages:CreateDataChannel
+                - ssmmessages:OpenControlChannel
+                - ssmmessages:OpenDataChannel
+              Resource: '*'
+        Roles:
+          - Ref: EcsTaskRole
+
+    EcsTaskDefinition:
+      Type: AWS::ECS::TaskDefinition
+      Properties:
+        Family: ${param:StackName}
+        NetworkMode: awsvpc
+        RequiresCompatibilities:
+          - FARGATE
+        Cpu: ${param:EcsTaskCpu}
+        Memory: ${param:EcsTaskMemory}
+        ExecutionRoleArn: !GetAtt EcsExecutionRole.Arn
+        TaskRoleArn: !GetAtt EcsTaskRole.Arn
+        ContainerDefinitions:
+          - Name: ${param:StackName}
+            Image: ${param:Image}
+            PortMappings:
+              - HostPort: ${param:ServicePort}
+                ContainerPort: ${param:ServicePort}
+            Environment:
+              - Name: AUTH_KEY
+                Value: ${param.AuthKey}
+
+              - Name: AUTH_SALT
+                Value: ${param.AuthSalt}
+
+              - Name: NONCE_KEY
+                Value: ${param.NonceKey}
+
+              - Name: NONCE_SALT
+                Value: ${param.NonceSalt}
+
+              - Name: SECURE_AUTH_KEY
+                Value: ${param.SecureAuthKey}
+
+              - Name: SECURE_AUTH_SALT
+                Value: ${param.SecureAuthSalt}
+
+              - Name: LOGGED_IN_KEY
+                Value: ${param.LoggedInKey}
+
+              - Name: LOGGED_IN_SALT
+                Value: ${param.LoggedInSalt}
+
+              - Name: DB_HOST
+                Value: ${param.DBHost}
+
+              - Name: DB_USER
+                Value: ${param.DBUser}
+
+              - Name: DB_NAME
+                Value: ${param.DBName}
+
+              - Name: DB_PASSWORD
+                Value: ${param.DBPassword}
+
+              - Name: DB_COLLATE
+                Value: ${param.DBCollate}
+
+              - Name: DB_CHARSET
+                Value: ${param.DBCharset}
+
+            LogConfiguration:
+              LogDriver: awslogs
+              Options:
+                awslogs-region: ${aws:region}
+                awslogs-group: !Ref EcsServiceLogGroup
+                awslogs-stream-prefix: ecs
+
+    EcsService:
+      Type: AWS::ECS::Service
+      Properties:
+        Cluster: ${param:EcsClusterName}
+        ServiceName: ${self:service}
+        TaskDefinition: !Ref EcsTaskDefinition
+        DesiredCount: ${param:EcsTaskDesiredCount}
+        EnableExecuteCommand: ${param:EcsEnableExecuteCommand}
+        LaunchType: FARGATE
+        DeploymentConfiguration:
+          DeploymentCircuitBreaker:
+            Enable: true
+            Rollback: true
+            # MaximumPercent: Integer
+            # MinimumHealthyPercent: Integer
+        NetworkConfiguration:
+          AwsvpcConfiguration:
+            AssignPublicIp: DISABLED
+            Subnets:
+              - ${env:VPC_SUBNET_ID1}
+              - ${env:VPC_SUBNET_ID2}
+              - ${env:VPC_SUBNET_ID3}
+            SecurityGroups:
+              - ${param:FrontendSecurityGroup}
+              - ${param:ServiceSecurityGroup}
+        LoadBalancers:
+          - ContainerName: ${param:StackName}
+            ContainerPort: ${param:ServicePort}
+            TargetGroupArn: ${param:ServiceTargetGroup}
