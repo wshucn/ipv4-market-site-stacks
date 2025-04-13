@@ -37,6 +37,9 @@ params:
     DBCollate: ${env:DB_COLLATE}
     DBCharset: ${env:DB_CHARSET}
 
+    EfsId: ${env:EFS_ID}
+    EfsMountPath: ${env:EFS_MOUNT_PATH}
+
 useDotenv: true
 
 plugins:
@@ -84,6 +87,18 @@ resources:
               Principal:
                 Service: ecs-tasks.amazonaws.com
               Action: sts:AssumeRole
+        Policies:
+          - PolicyName: EFSAccessPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - 'elasticfilesystem:ClientMount'
+                    - 'elasticfilesystem:ClientWrite'
+                    - 'elasticfilesystem:DescribeMountTargets'
+                    - 'elasticfilesystem:DescribeFileSystems'
+                  Resource: arn:aws:elasticfilesystem:${aws:region}:${aws:accountId}:file-system/${param:EfsId}
         ManagedPolicyArns:
           - arn:aws:iam::aws:policy/AmazonS3FullAccess
           - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
@@ -130,6 +145,11 @@ resources:
         Memory: ${param:EcsTaskMemory}
         ExecutionRoleArn: !GetAtt EcsExecutionRole.Arn
         TaskRoleArn: !GetAtt EcsTaskRole.Arn
+        Volumes:
+          - Name: efs-volume
+            EFSVolumeConfiguration:
+              FilesystemId: ${param:EfsId}
+              RootDirectory: /
         ContainerDefinitions:
           - Name: ${param:StackName}
             Image: ${param:Image}
@@ -185,7 +205,9 @@ resources:
                 awslogs-region: ${aws:region}
                 awslogs-group: !Ref EcsServiceLogGroup
                 awslogs-stream-prefix: ecs
-
+            MountPoints:
+              - SourceVolume: efs-volume
+                ContainerPath: ${param:EfsMountPath}
     EcsService:
       Type: AWS::ECS::Service
       Properties:
